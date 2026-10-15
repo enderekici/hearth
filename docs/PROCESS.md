@@ -1,6 +1,6 @@
 # Architecture and operating boundaries
 
-Hearth is a Node.js 24 web service with static files under `public/` and provider adapters under `server/`. It serves an Android WebView or another browser; it does not flash firmware or install a native launcher. The project was built in a fresh repository without importing the prior dashboard's Git history.
+Hearth is a Node.js 24 web service with static files under `public/` and provider adapters under `server/`. Its optional Android app is a native WebView host, declares Android HOME and LAUNCHER intent filters, and can be selected as the Home app. Hearth does not flash firmware or select itself as Home; automatic startup is unverified. The project was built in a fresh repository without importing the prior dashboard's Git history.
 
 ## Runtime and storage
 
@@ -31,10 +31,12 @@ iCloud setup validates the CalDAV principal and requires explicit calendar selec
 The school adapter reads messages for display; it does not mark them read or send replies. Registered schedule feeds are partial: they may include academic ranges, registered trip/activity entries, and a club's next session, not a complete term timetable. Unknown coverage remains unknown. A failed or incomplete read retains the last complete cache and skips destructive reconciliation. Calendar writes go only to the operator's explicitly selected destination and are conditional on Hearth ownership; missing rows do not imply cancellation.
 
 The private credential file is `DATA_DIR/mcas-credentials.json`. It is a JSON
-object containing `credentials` (an `email` or `username`, plus `password`) and an
-explicit `calendarDestinationURL`. It must have mode `0600` inside a private data
-directory and is never served through the API. When configured, refresh runs at
-startup and periodically; the service avoids overlapping refresh jobs.
+object containing `credentials` (an `email` or `username`, plus `password`). An
+optional `calendarDestinationURL` enables writes to an explicitly selected CalDAV
+collection; it must end in `/` and have no query or fragment. The file must have
+mode `0600`, be readable by the service UID, and is never served through the API.
+When configured, refresh runs at startup and periodically; the service avoids
+overlapping refresh jobs.
 
 ### Spotify
 
@@ -58,6 +60,6 @@ See `server/index.js` for the current route list and request shapes. Error respo
 
 ## Verification and known limits
 
-The latest local `npm test` run passed 44 tests. The local deployment was checked on a full-size frame viewport and at a narrow phone viewport. Read-only flows covered saved-library browsing, artist search/discography, album tracks, artwork delivery, Now Playing state, and speaker-sheet open/close. Playback and queue requests were browser-intercepted; no live playback or speaker mutation was issued. Real device availability depends on the account and the Connect devices online at the time.
+The latest local `npm test` run passed 45 tests. The local deployment was checked on a full-size frame viewport and at a narrow phone viewport. Read-only flows covered saved-library browsing, artist search/discography, album tracks, artwork delivery, Now Playing state, and speaker-sheet open/close. Playback and queue requests were browser-intercepted; no live playback or speaker mutation was issued. Real device availability depends on the account and the Connect devices online at the time.
 
 The dashboard page is served successfully in the tested Android WebView, but this repository does not establish that Hearth is the device's default Home app or starts automatically after a cold boot. Android model, firmware, USB/ADB behavior, root status, display scaling, and vendor settings vary. See [History](HISTORY.md) for the tested device scope and gaps; do not infer an unlock, root, SD-card, or boot procedure for another model.

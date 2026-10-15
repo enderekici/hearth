@@ -41,6 +41,8 @@ data in `./data`, and mounts `./photos` read-only. Put real photos in the select
 photo directory; the directory is ignored by Git. To let a frame on the LAN reach
 the service, set `HEARTH_BIND_ADDRESS` to the server's trusted LAN interface address
 and add the exact hostname/address used by the browser to `HEARTH_ALLOWED_HOSTS`.
+The allowlist accepts exact hostnames or IP literals, case-insensitively; do not
+use wildcards. The Android `DASHBOARD_URL` hostname must also appear in the list.
 Do not use a wildcard or expose port 8787 to the public Internet. `HEARTH_DATA_DIR`
 and `HEARTH_PHOTO_DIR` can point to other host paths. The application data directory
 contains plaintext credentials and tokens; back it up privately and restrict access.
@@ -48,6 +50,16 @@ Create and protect the data directory before setup. The app expects a private da
 directory and a writable mount; the image runs as user `node` by default. Check the
 actual UID mapping on your Docker engine before changing host ownership. Rootful and
 rootless Docker map container users differently.
+
+With rootful Docker and the default image user (UID 1000), prepare the data directory
+for that container UID, for example:
+
+```sh
+sudo install -d -o 1000 -g 1000 -m 0700 ./data
+```
+
+Adjust the path if `HEARTH_DATA_DIR` points elsewhere. Confirm the image UID and
+host mapping on your target before changing ownership of an existing data directory.
 
 For a confirmed rootless Docker engine only, inspect the user-namespace mapping and
 verify that container UID 0 maps to the unprivileged host account that owns the
@@ -127,8 +139,13 @@ remote host, open an SSH local-forward tunnel in one terminal:
 ```sh
 hearth_host=frame-host.local
 hearth_user=your-user
-ssh -N -L "8787:${hearth_host}:8787" "${hearth_user}@${hearth_host}"
+hearth_target=127.0.0.1
+ssh -N -L "8787:${hearth_target}:8787" "${hearth_user}@${hearth_host}"
 ```
+
+The default Compose port is published on the remote host's loopback, so the SSH
+forward target is `127.0.0.1`. If you configure a LAN bind instead, set
+`hearth_target` to that exact configured interface address.
 
 Then open `http://127.0.0.1:8787/#settings` in that same computer's browser and use
 Connect Spotify. Do not start the OAuth flow from the frame browser: Spotify must
@@ -140,9 +157,13 @@ available Spotify Connect device.
 ## School messages and schedule
 
 The school adapter is optional and reads portal messages for display; it does not
-mark messages read or send replies. If enabled for your deployment, provision the
-credential file at `DATA_DIR/mcas-credentials.json` with mode `0600` inside a
-directory restricted to its owner. The JSON shape is:
+mark messages read or send replies. If enabled, provision the credential file at
+`DATA_DIR/mcas-credentials.json` with mode `0600` in a directory restricted to its
+owner. Ensure the file is readable by the UID running the container. The `email` or
+`username` and `password` fields are required. `calendarDestinationURL` is optional:
+without an explicit valid destination, Hearth reads messages and schedule data but
+does not write calendar events. When supplied, it must be the selected CalDAV
+collection URL, end in `/`, and contain no query string or fragment. Example:
 
 ```json
 {
@@ -150,16 +171,16 @@ directory restricted to its owner. The JSON shape is:
     "email": "<SCHOOL_LOGIN>",
     "password": "<SCHOOL_PASSWORD>"
   },
-  "calendarDestinationURL": "<EXPLICIT_SELECTED_CALDAV_COLLECTION_URL>"
+  "calendarDestinationURL": "<SELECTED_APPLE_CALDAV_COLLECTION_URL>/"
 }
 ```
 
-The adapter also accepts a `username` field instead of `email`. Supply the exact
-destination collection selected by the operator; do not point it at an inferred or
-first-discovered calendar. Never put a real password in shell arguments, command
-history, this repository, or a support log. Calendar synchronization is conditional
-on having both the school file and an iCloud connection. The source feeds are
-partial and do not constitute a complete term schedule.
+Replace the explanatory URL with the exact destination selected by the operator;
+it is not a copy-ready value. Do not point it at an inferred or first-discovered
+calendar. Never put a real password in shell arguments, command history, this
+repository, or a support log. Calendar synchronization is conditional on having
+both the school file and an iCloud connection. The source feeds are partial and do
+not constitute a complete schedule.
 
 ## Recovery and operation
 

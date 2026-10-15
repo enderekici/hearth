@@ -168,6 +168,48 @@ test('write APIs reject cross-origin and untrusted Host requests', async () => {
   assert.equal((await good.json()).theme, 'dark');
 });
 
+test('explicit allowed hostnames support same-origin writes without trusting lookalikes', async () => {
+  const configuredHosts = process.env.ALLOWED_HOSTS;
+  const send = (host, origin) => new Promise((resolve, reject) => {
+    const headers = { Host: host, 'Content-Type': 'application/json' };
+    if (origin !== undefined) headers.Origin = origin;
+    const req = http.request({ hostname: '127.0.0.1', port: server.address().port,
+      path: '/api/settings', method: 'PUT', headers }, res => {
+      let body = '';
+      res.setEncoding('utf8'); res.on('data', chunk => { body += chunk; });
+      res.on('end', () => resolve({ status: res.statusCode, body }));
+    });
+    req.on('error', reject); req.end(JSON.stringify({ theme: 'light' }));
+  });
+  const port = server.address().port;
+  try {
+    process.env.ALLOWED_HOSTS = ' FRAME-HOST.LOCAL , 192.0.2.10 ';
+    const named = await send(`Frame-Host.Local:${port}`, `http://frame-host.local:${port}`);
+    assert.equal(named.status, 200);
+    assert.equal(JSON.parse(named.body).theme, 'light');
+
+    const loopback = await send(`127.0.0.1:${port}`, `http://127.0.0.1:${port}`);
+    assert.equal(loopback.status, 200);
+
+    delete process.env.ALLOWED_HOSTS;
+    assert.equal((await send(`frame-host.local:${port}`)).status, 403);
+
+    process.env.ALLOWED_HOSTS = 'frame-host.local';
+    assert.equal((await send(`unlisted.local:${port}`)).status, 403);
+    assert.equal((await send(`frame-host.local.evil.example:${port}`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}`, `http://evil.example:${port}`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}`, `https://frame-host.local:${port}`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}`, `http://frame-host.local.:${port}`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}`, `http://frame-host.local:${port + 1}`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}/settings`)).status, 403);
+    assert.equal((await send(`frame-host.local:${port}`, `http://frame-host.local:${port}/settings`)).status, 403);
+    assert.equal((await send(`user@frame-host.local:${port}`)).status, 403);
+  } finally {
+    if (configuredHosts === undefined) delete process.env.ALLOWED_HOSTS;
+    else process.env.ALLOWED_HOSTS = configuredHosts;
+  }
+});
+
 test('iCloud setup rejects a main-account password before network access', async () => {
   const response = await fetch(base + '/api/icloud/connect', { method: 'POST',
     headers: { 'Content-Type': 'application/json' },

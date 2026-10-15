@@ -5,6 +5,10 @@ decisions and verified outcomes that led to Hearth, not a device-specific repair
 manual. It omits serials, MAC/IP addresses, credentials, private records, and
 personal calendar, school, and music data.
 
+The work record covers 14–15 October 2026. Private measurement receipts are not
+included here, so the historical touch and WebView comparisons cannot be reproduced
+from this repository and were not controlled benchmarks.
+
 ## Starting with the frame
 
 The work started from the public
