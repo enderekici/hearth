@@ -2,11 +2,12 @@
 
 Hearth is a Node.js 24 dashboard for a home photo frame. It combines a photo slideshow with calendar, weather, school-notification, and Spotify Connect views. The dashboard is a web app served on the local network; it is not a device firmware image.
 
-This repository starts from a fresh source tree and does not import the previous dashboard's Git history. [History](docs/HISTORY.md) is a narrative of one tested frame, not a universal hardware-repair guide. For reproducible setup, see [Setup](docs/SETUP.md). Architecture and privacy boundaries are in [Process](docs/PROCESS.md).
+This repository starts from a fresh source tree and does not import the previous dashboard's Git history. [History](docs/HISTORY.md) is a narrative of one tested frame, not a universal hardware-repair guide. For reproducible setup, start with [server and account setup](docs/SETUP.md), then follow [PF1007 frame setup and recovery](docs/FRAME_SETUP.md). Architecture and privacy boundaries are in [Process](docs/PROCESS.md).
 
 ## Quick start
 
-Requirements: Node.js 24 and npm.
+Requirements: Node.js 24 and npm. For the Raspberry Pi/Docker route and frame
+instructions, use the setup guides linked above.
 
 ```sh
 npm ci
