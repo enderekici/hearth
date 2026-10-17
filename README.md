@@ -1,6 +1,6 @@
 # Hearth
 
-Hearth is a Node.js 24 dashboard for a home photo frame. It combines a photo slideshow with calendar, weather, school-notification, and Spotify Connect views. The dashboard is a web app served on the local network; it is not a device firmware image.
+Hearth is a Node.js 24 dashboard for a home photo frame. It combines a photo slideshow, local MP4 videos, calendar, weather, school-notification, and Spotify Connect views. The dashboard is a web app served on the local network; it is not a device firmware image.
 
 This repository starts from a fresh source tree and does not import the previous dashboard's Git history. [History](docs/HISTORY.md) is a narrative of one tested frame, not a universal hardware-repair guide. For reproducible setup, start with [server and account setup](docs/SETUP.md), then follow [PF1007 frame setup and recovery](docs/FRAME_SETUP.md). Architecture and privacy boundaries are in [Process](docs/PROCESS.md).
 
@@ -22,7 +22,7 @@ The local server listens on port 8787 on all interfaces. Open `http://127.0.0.1:
 - iCloud Calendar uses an Apple app-specific password. The main Apple Account password is rejected.
 - Spotify uses OAuth authorization code with PKCE. A Client ID is required; a Client Secret is optional.
 - School messages are read-only. Calendar writes are limited to the explicitly selected calendar and Hearth-owned events.
-- Photos are mounted read-only; generated thumbnails are stored in the private data directory.
+- Photos and MP4 videos are served from the read-only media folder; generated photo thumbnails are stored in the private data directory. See [adding media](docs/SETUP.md#photos-and-videos).
 
 All service data is local to the operator's deployment. No account credentials, calendar contents, school data, or personal photos belong in this repository. The HTTP API is designed for a trusted local network and does not provide user authentication; see the security limits in [Process](docs/PROCESS.md).
 
