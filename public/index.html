@@ -71,10 +71,11 @@
             <div class="photo-placeholder" id="photo-placeholder"><div class="photo-placeholder-inner"><svg><use href="#i-photo"/></svg><span id="photo-placeholder-title">Your moments, at home</span><small id="photo-placeholder-copy">Add a photo folder on the Pi to begin</small><button class="text-button" data-open-settings>Set up photos <svg><use href="#i-chevron"/></svg></button></div></div>
             <img id="photo-image" alt="" hidden>
             <div class="photo-wash"></div>
-            <div class="photo-caption" id="photo-caption" hidden><span id="photo-name"></span><span class="photo-counter" id="photo-counter"></span></div>
-            <div class="photo-controls" id="photo-controls" hidden><button class="photo-control" id="photo-prev" aria-label="Previous photo"><svg><use href="#i-prev"/></svg></button><button class="photo-control" id="photo-toggle" aria-label="Pause slideshow"><svg><use href="#i-pause"/></svg></button><button class="photo-control" id="photo-next" aria-label="Next photo"><svg><use href="#i-next"/></svg></button><button class="photo-control" id="photo-fullscreen" aria-label="Fullscreen"><svg><use href="#i-expand"/></svg></button></div>
           </div>
-          <div class="photo-bottom"><span class="photo-label">A LITTLE WINDOW INTO YOUR WORLD</span><span id="photo-status">Slideshow is ready when you are</span></div>
+          <div class="photo-bottom">
+            <div class="photo-controls" id="photo-controls" hidden aria-label="Photo controls"><button class="photo-control" id="photo-prev" aria-label="Previous photo"><svg><use href="#i-prev"/></svg></button><button class="photo-control" id="photo-toggle" aria-label="Pause slideshow"><svg><use href="#i-pause"/></svg></button><button class="photo-control" id="photo-next" aria-label="Next photo"><svg><use href="#i-next"/></svg></button><button class="photo-control" id="photo-fullscreen" aria-label="Fullscreen"><svg><use href="#i-expand"/></svg></button><span class="photo-counter" id="photo-counter" aria-live="polite"></span></div>
+            <span id="photo-status">Slideshow is ready when you are</span>
+          </div>
         </section>
       </section>
 
@@ -87,7 +88,7 @@
         <div class="device-control"><select id="spotify-device" aria-label="Spotify device"><option value="">No active speaker</option></select><label class="volume-control" aria-label="Volume"><svg><use href="#i-wind"/></svg><input id="spotify-volume" type="range" min="0" max="100" value="35"><span id="volume-value">35</span></label></div>
         <div class="music-error" id="music-error" hidden></div>
       </section>
-      <footer class="footer-line"><span>Make yourself at home.</span><span id="last-sync">Waiting for your home</span></footer>
+      <footer class="footer-line"><span id="last-sync">Waiting for your home</span></footer>
     </main>
   </div>
 
