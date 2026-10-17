@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { loadConfig, saveConfig, mutateConfig, publicSettings, ensureDataDir, photoDir } from './config.js';
 import { requireSafeLocal } from './security.js';
 import { discoverCalendars, readCalendars, CalendarError, defaultCalendarRange } from './calendar.js';
-import { listPhotos, listPhotoAlbums, optimizedPhoto, fetchWeather, searchPlaces, cacheState, photoCatalogState } from './providers.js';
+import { listPhotos, listPhotoAlbums, optimizedPhoto, videoFile, fetchWeather, searchPlaces, cacheState, photoCatalogState } from './providers.js';
 import { spotifyConfigured, spotifyLoginUrl, spotifyCallback, getSpotify, spotifyAction, readSpotifyArtwork, spotifyScopeStatus } from './spotify.js';
 import { searchSpotify, getSpotifyPlaylists, getSpotifyLibraryTracks, getSpotifyLibraryAlbums,
   getSpotifyAlbumTracks, getSpotifyPlaylistTracks, getSpotifyArtistAlbums, getSpotifyQueue, spotifyScopeFailure } from './spotify-library.js';
@@ -39,6 +39,49 @@ async function bodyJson(req) {
 function errorCode(error) {
   return error instanceof CalendarError ? error.code : String(error?.message || 'internal_error')
     .replace(/[^a-z0-9_-]/gi, '_').slice(0, 80);
+}
+
+function parseVideoRange(value, size) {
+  if (value === undefined) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(value);
+  if (!match || !match[1] && !match[2] || size <= 0) return false;
+  let start, end;
+  if (!match[1]) {
+    const suffix = Number(match[2]);
+    if (!Number.isSafeInteger(suffix) || suffix <= 0) return false;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] ? Number(match[2]) : size - 1;
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= size || end < start) return false;
+    end = Math.min(end, size - 1);
+  }
+  return { start, end };
+}
+
+function streamVideo(req, res, video) {
+  const range = parseVideoRange(req.headers.range, video.size);
+  if (range === false) {
+    return send(res, 416, { error: 'invalid_video_range' }, { 'Content-Range': `bytes */${video.size}` });
+  }
+  const start = range ? range.start : 0;
+  const end = range ? range.end : video.size - 1;
+  const headers = {
+    'Content-Type': 'video/mp4', 'Content-Length': String(video.size ? end - start + 1 : 0),
+    'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600',
+    'X-Content-Type-Options': 'nosniff',
+  };
+  if (range) headers['Content-Range'] = `bytes ${start}-${end}/${video.size}`;
+  res.writeHead(range ? 206 : 200, headers);
+  if (req.method === 'HEAD' || video.size === 0) return res.end();
+  const stream = fsNative.createReadStream(video.path, { start, end });
+  stream.on('error', () => {
+    if (!res.headersSent) send(res, 404, { error: 'video_not_found' });
+    else if (!res.destroyed) res.destroy();
+  });
+  res.on('close', () => stream.destroy());
+  stream.pipe(res);
 }
 
 function calendarCacheKey(config, range) {
@@ -238,6 +281,13 @@ async function handler(req, res) {
     if (method === 'GET' && url.pathname === '/api/photos') {
       const result = await listPhotos(config.photoAlbums);
       return send(res, 200, result);
+    }
+    if ((method === 'GET' || method === 'HEAD') && url.pathname.startsWith('/api/videos/')) {
+      const id = url.pathname.slice('/api/videos/'.length);
+      if (!/^[a-f0-9]{32}$/.test(id)) return send(res, 404, { error: 'video_not_found' });
+      const video = await videoFile(id);
+      if (!video) return send(res, 404, { error: 'video_not_found' });
+      return streamVideo(req, res, video);
     }
     if (method === 'GET' && url.pathname.startsWith('/api/photos/')) {
       const image = await optimizedPhoto(url.pathname.slice('/api/photos/'.length));
