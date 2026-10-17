@@ -303,9 +303,10 @@ container can read them; the mount inside the container is read-only.
 
 Videos start muted. Select the speaker control to turn on video audio. The
 frame's audio service reported active PCM output routed to its speaker after
-unmuting, but a person has not confirmed the sound by listening. The slideshow
-waits for a video to finish before advancing; the pause control pauses the
-current video or the image slideshow. If a clip uses an unsupported format,
+unmuting; in a later retest, a listener confirmed hearing three beeps. The
+system route report and acoustic observation are separate checks. The
+slideshow waits for a video to finish before advancing; the pause control pauses
+the current video or the image slideshow. If a clip uses an unsupported format,
 Hearth shows an error and offers **Next** to continue. Convert such files to a
 compatible MP4 outside Hearth; the server does not transcode them.
 

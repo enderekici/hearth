@@ -331,10 +331,11 @@ observations, not a benchmark. The device reported the native
 
 Native pause/resume, Hearth's mute control, and CSS fullscreen at 1280×800 were
 checked on that frame. After unmuting, Android reported PCM 44.1 kHz stereo
-output routed to the speaker; nobody has confirmed the audible result by
-listening. This is evidence from one device only. It does not guarantee support
-for every MP4 encoding or another unit's decoder. For media preparation advice,
-see [photos and videos](SETUP.md#photos-and-videos).
+output routed to the speaker. In a later retest, a listener confirmed hearing
+three beeps. The system route report and that listening observation are separate
+checks. This is evidence from one device only. It does not guarantee support for
+every MP4 encoding or another unit's decoder. For media preparation advice, see
+[photos and videos](SETUP.md#photos-and-videos).
 
 ## Return controls, settings, and brightness
 
