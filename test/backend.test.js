@@ -150,6 +150,115 @@ test('photo catalog is bounded, album-selectable, ignores symlinks, and caches o
   assert.equal(await photos.optimizedPhoto('../outside.png'), null);
 });
 
+test('MP4 catalog and HTTP streaming honor album selection, ranges, types, and symlink boundaries', async () => {
+  const photosRoot = process.env.PHOTO_DIR;
+  const clipsDir = path.join(photosRoot, 'ClipsOnly');
+  await fs.mkdir(clipsDir, { recursive: true });
+  const clipPath = path.join(clipsDir, 'sample.mp4');
+  const rootClipPath = path.join(photosRoot, 'root-only.mp4');
+  const clipBytes = Buffer.from(Array.from({ length: 32 }, (_, index) => index));
+  await fs.writeFile(clipPath, clipBytes);
+  await fs.writeFile(rootClipPath, clipBytes);
+  const albums = await photos.listPhotoAlbums();
+  const clipsAlbum = albums.find(album => album.name === 'ClipsOnly');
+  const rootAlbum = albums.find(album => album.name === 'Photos');
+  assert.ok(clipsAlbum, 'video-only folders are exposed as albums');
+  assert.ok(rootAlbum, 'root-level video-only content exposes the root Photos album');
+
+  await configStore.mutateConfig(config => { config.photoAlbums = [rootAlbum.id]; });
+  let listing;
+  for (let i = 0; i < 100; i++) {
+    listing = await (await fetch(base + '/api/photos')).json();
+    if (listing.updatedAt && !listing.indexing) break;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  assert.deepEqual(listing.photos.map(item => item.name), ['root-only.mp4']);
+
+  await configStore.mutateConfig(config => { config.photoAlbums = [clipsAlbum.id]; });
+  for (let i = 0; i < 100; i++) {
+    listing = await (await fetch(base + '/api/photos')).json();
+    if (listing.updatedAt && !listing.indexing) break;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  assert.equal(listing.photos.length, 1);
+  assert.deepEqual(listing.photos[0], {
+    id: listing.photos[0].id, name: 'sample.mp4', type: 'video', url: '/api/videos/' + listing.photos[0].id,
+  });
+  const videoId = listing.photos[0].id;
+  assert.equal(await photos.optimizedPhoto(videoId), null, 'the image optimizer rejects video IDs');
+  const imageForVideo = await fetch(base + '/api/photos/' + videoId);
+  assert.equal(imageForVideo.status, 404);
+
+  await configStore.mutateConfig(config => { config.photoAlbums = []; });
+  for (let i = 0; i < 100; i++) {
+    listing = await (await fetch(base + '/api/photos')).json();
+    if (listing.updatedAt && !listing.indexing && listing.photos.some(item => item.id === videoId)) break;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  const imageId = listing.photos.find(item => !item.type)?.id;
+  assert.ok(imageId, 'existing image DTOs remain untyped');
+  assert.ok(listing.photos.some(item => item.id === videoId && item.type === 'video'));
+
+  const full = await fetch(base + '/api/videos/' + videoId);
+  assert.equal(full.status, 200);
+  assert.equal(full.headers.get('content-type'), 'video/mp4');
+  assert.equal(full.headers.get('accept-ranges'), 'bytes');
+  assert.equal(full.headers.get('content-length'), String(clipBytes.length));
+  assert.match(full.headers.get('cache-control'), /^private/);
+  assert.equal(full.headers.get('x-content-type-options'), 'nosniff');
+  assert.deepEqual(Buffer.from(await full.arrayBuffer()), clipBytes);
+
+  const plainHead = await fetch(base + '/api/videos/' + videoId, { method: 'HEAD' });
+  assert.equal(plainHead.status, 200);
+  assert.equal(plainHead.headers.get('content-length'), String(clipBytes.length));
+  assert.equal((await plainHead.arrayBuffer()).byteLength, 0);
+
+  const ranged = await fetch(base + '/api/videos/' + videoId, { headers: { Range: 'bytes=2-5' } });
+  assert.equal(ranged.status, 206);
+  assert.equal(ranged.headers.get('content-range'), `bytes 2-5/${clipBytes.length}`);
+  assert.equal(ranged.headers.get('content-length'), '4');
+  assert.deepEqual(Buffer.from(await ranged.arrayBuffer()), clipBytes.subarray(2, 6));
+
+  const suffix = await fetch(base + '/api/videos/' + videoId, { headers: { Range: 'bytes=-3' } });
+  assert.equal(suffix.status, 206);
+  assert.deepEqual(Buffer.from(await suffix.arrayBuffer()), clipBytes.subarray(-3));
+  const openEnded = await fetch(base + '/api/videos/' + videoId, { headers: { Range: 'bytes=30-' } });
+  assert.equal(openEnded.status, 206);
+  assert.deepEqual(Buffer.from(await openEnded.arrayBuffer()), clipBytes.subarray(30));
+
+  const head = await fetch(base + '/api/videos/' + videoId, { method: 'HEAD', headers: { Range: 'bytes=1-4' } });
+  assert.equal(head.status, 206);
+  assert.equal(head.headers.get('content-range'), `bytes 1-4/${clipBytes.length}`);
+  assert.equal(head.headers.get('content-length'), '4');
+  assert.equal((await head.arrayBuffer()).byteLength, 0);
+
+  for (const range of ['nonsense', 'bytes=99-', 'bytes=5-2', 'bytes=-0', 'bytes=0-1,4-5']) {
+    const invalid = await fetch(base + '/api/videos/' + videoId, { headers: { Range: range } });
+    assert.equal(invalid.status, 416, range);
+    assert.equal(invalid.headers.get('content-range'), `bytes */${clipBytes.length}`);
+  }
+  assert.equal((await fetch(base + '/api/videos/' + imageId)).status, 404, 'image IDs are not accepted as videos');
+  assert.equal((await fetch(base + '/api/videos/not-an-id')).status, 404);
+  assert.equal((await fetch(base + '/api/videos/' + 'f'.repeat(32))).status, 404);
+
+  const outside = path.join(root, 'outside-videos');
+  await fs.mkdir(outside, { recursive: true });
+  await fs.writeFile(path.join(outside, 'sample.mp4'), clipBytes);
+  const movedDir = path.join(photosRoot, 'ClipsOnly-original');
+  await fs.rename(clipsDir, movedDir);
+  await fs.symlink(outside, clipsDir, 'dir');
+  try {
+    const escaped = await fetch(base + '/api/videos/' + videoId);
+    assert.equal(escaped.status, 404, 'an ancestor symlink cannot redirect a cached ID outside the photo root');
+  } finally {
+    await fs.rm(clipsDir, { recursive: true, force: true });
+    await fs.rename(movedDir, clipsDir);
+  }
+  await fs.rm(clipPath);
+  assert.equal((await fetch(base + '/api/videos/' + videoId)).status, 404, 'removed catalog entries are not served');
+  await fs.rm(rootClipPath);
+});
+
 test('write APIs reject cross-origin and untrusted Host requests', async () => {
   const badOrigin = await fetch(base + '/api/settings', { method: 'PUT',
     headers: { 'Content-Type': 'application/json', Origin: 'http://evil.example' }, body: '{}' });

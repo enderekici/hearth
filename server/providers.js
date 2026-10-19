@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { dataDir, photoDir } from './config.js';
 
 const PHOTO_TYPES = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif', '.tif', '.tiff']);
+const VIDEO_TYPES = new Set(['.mp4']);
 const photoCache = path.join(dataDir, 'photo-cache');
 const MAX_LISTED_PHOTOS = 160;
 let catalog = [];
@@ -21,7 +22,8 @@ export async function listPhotoAlbums() {
   try {
     const entries = await fs.readdir(photoDir, { withFileTypes: true });
     const albums = entries.filter(e => e.isDirectory() && !e.isSymbolicLink()).map(e => ({ id: albumId(e.name), name: e.name }));
-    if (entries.some(e => e.isFile() && PHOTO_TYPES.has(path.extname(e.name).toLowerCase()))) albums.unshift({ id: albumId('root'), name: 'Photos' });
+    if (entries.some(e => e.isFile() && (PHOTO_TYPES.has(path.extname(e.name).toLowerCase())
+        || VIDEO_TYPES.has(path.extname(e.name).toLowerCase())))) albums.unshift({ id: albumId('root'), name: 'Photos' });
     return albums.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     if (error.code === 'ENOENT') return [];
@@ -62,20 +64,24 @@ async function rebuildPhotoCatalog(selectedAlbums, epoch) {
       const full = path.join(dir, entry.name);
       const albumName = entry.isDirectory() ? (rel ? rel.split(path.sep)[0] : entry.name)
         : (rel ? rel.split(path.sep)[0] : 'root');
-      const isImage = entry.isFile() && PHOTO_TYPES.has(path.extname(entry.name).toLowerCase());
+      const extension = path.extname(entry.name).toLowerCase();
+      const isImage = entry.isFile() && PHOTO_TYPES.has(extension);
+      const isVideo = entry.isFile() && VIDEO_TYPES.has(extension);
       if (selectedAlbums.length && !(chosen.has(albumId(albumName || 'root')))) continue;
       if (entry.isDirectory()) await walk(full, nextRel);
-      else if (isImage) {
+      else if (isImage || isVideo) {
         const id = crypto.createHash('sha256').update(nextRel).digest('hex').slice(0, 32);
-        const item = { id, url: '/api/photos/' + id, name: path.basename(entry.name) };
+        const item = isVideo
+          ? { id, name: path.basename(entry.name), type: 'video', url: '/api/videos/' + id }
+          : { id, url: '/api/photos/' + id, name: path.basename(entry.name) };
         total++;
         if (sample.length < MAX_LISTED_PHOTOS) {
-          sample.push(item); mapping.set(id, nextRel);
+          sample.push(item); mapping.set(id, { rel: nextRel, type: isVideo ? 'video' : 'image' });
         } else {
           const chosen = Math.floor(Math.random() * total);
           if (chosen < MAX_LISTED_PHOTOS) {
             mapping.delete(sample[chosen].id);
-            sample[chosen] = item; mapping.set(id, nextRel);
+            sample[chosen] = item; mapping.set(id, { rel: nextRel, type: isVideo ? 'video' : 'image' });
           }
         }
       }
@@ -94,36 +100,48 @@ async function rebuildPhotoCatalog(selectedAlbums, epoch) {
   }
 }
 
-async function photoPath(id) {
+async function mediaPath(id, expectedType) {
   if (!/^[a-f0-9]{32}$/.test(id)) return null;
   if (!catalogUpdatedAt || Date.now() - Date.parse(catalogUpdatedAt) > 15 * 60_000) {
     await listPhotos(catalogSelection ? catalogSelection.split(',') : []);
   }
-  const rel = catalogMap.get(id);
-  if (!rel) return null;
-  const target = path.resolve(photoDir, rel);
-  if (!target.startsWith(photoDir + path.sep)) return null;
-  const stat = await fs.lstat(target);
-  if (!stat.isFile() || stat.isSymbolicLink()) return null;
-  return target;
+  const item = catalogMap.get(id);
+  if (!item || item.type !== expectedType) return null;
+  const root = path.resolve(photoDir);
+  const target = path.resolve(root, item.rel);
+  if (!target.startsWith(root + path.sep)) return null;
+  try {
+    const [rootReal, targetReal, stat, targetLstat] = await Promise.all([
+      fs.realpath(root), fs.realpath(target), fs.stat(target), fs.lstat(target),
+    ]);
+    if (!targetReal.startsWith(rootReal + path.sep) || !stat.isFile() || targetLstat.isSymbolicLink()) return null;
+    return { path: targetReal, size: stat.size, mtimeMs: stat.mtimeMs };
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR' || error.code === 'ELOOP') return null;
+    throw error;
+  }
 }
 
 export async function optimizedPhoto(id) {
-  const source = await photoPath(id);
-  if (!source) return null;
+  const media = await mediaPath(id, 'image');
+  if (!media) return null;
   await fs.mkdir(photoCache, { recursive: true, mode: 0o700 });
   const destination = path.join(photoCache, id + '.webp');
   try {
-    const [src, dst] = await Promise.all([fs.stat(source), fs.stat(destination)]);
+    const [src, dst] = await Promise.all([fs.stat(media.path), fs.stat(destination)]);
     if (dst.mtimeMs >= src.mtimeMs) return { path: destination, mtimeMs: dst.mtimeMs };
   } catch {}
   const temp = destination + '.' + process.pid + '.' + crypto.randomBytes(6).toString('hex') + '.tmp';
-  await sharp(source, { failOn: 'none', limitInputPixels: 100_000_000 })
+  await sharp(media.path, { failOn: 'none', limitInputPixels: 100_000_000 })
     .rotate().resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: 82 }).toFile(temp);
   await fs.rename(temp, destination);
   const info = await fs.stat(destination);
   return { path: destination, mtimeMs: info.mtimeMs };
+}
+
+export async function videoFile(id) {
+  return mediaPath(id, 'video');
 }
 
 export function photoCatalogState() {

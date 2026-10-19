@@ -141,3 +141,12 @@ body:has(.school-dialog[open]){overflow:hidden}
 }
 
 @media(max-width:350px){.brand>span:last-child{display:none}}
+#photo-video{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;background:#111}
+.photo-stage.css-fullscreen #photo-video{object-fit:contain}
+.video-play{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);min-width:116px;min-height:52px;padding:0 18px;border:1px solid rgba(255,255,255,.72);border-radius:999px;background:rgba(25,28,24,.78);color:#fff;font:600 16px ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;backdrop-filter:blur(8px)}
+.video-play:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.video-message{position:absolute;z-index:2;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:24px;background:rgba(22,24,21,.92);color:#fff;text-align:center}
+.video-message strong{font:24px var(--serif);font-weight:500}
+.video-message span{max-width:36em;color:rgba(255,255,255,.82);font-size:14px;line-height:1.45}
+.video-message[hidden],.video-play[hidden]{display:none!important}
+.photo-controls{flex-wrap:wrap}

@@ -319,6 +319,24 @@ If the screen is in AiMOR or another Home app and USB ADB still works, launch
 Hearth directly from the setup computer with the same `am start` command above.
 This is a recovery shortcut, not proof that Hearth is the selected Home app.
 
+## Video playback check
+
+On one PF1007 running Android 6 with WebView `106.0.5249.126`, a local H.264
+Baseline/AAC MP4 at 480p and 24 fps played; an ADB screenshot showed the test
+bars moving. A short, uncontrolled four-second sample reported 93 decoded and
+5 dropped frames. A 720p/30 fps H.264/AAC sample also played, with 111 decoded
+and 18 dropped frames in a similarly short sample. Treat these counts as
+observations, not a benchmark. The device reported the native
+`OMX.allwinner.video.decoder.avc` codec.
+
+Native pause/resume, Hearth's mute control, and CSS fullscreen at 1280×800 were
+checked on that frame. After unmuting, Android reported PCM 44.1 kHz stereo
+output routed to the speaker. In a later retest, a listener confirmed hearing
+three beeps. The system route report and that listening observation are separate
+checks. This is evidence from one device only. It does not guarantee support for
+every MP4 encoding or another unit's decoder. For media preparation advice, see
+[photos and videos](SETUP.md#photos-and-videos).
+
 ## Return controls, settings, and brightness
 
 Hearth opens full-screen. To reveal its native controls, put **two fingers** on

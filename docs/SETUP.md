@@ -275,17 +275,40 @@ character, the tunnel is still running, the dashboard host and tunnel port are
 correct, and your computer can open `http://127.0.0.1:8787/`. Start a fresh
 authorization after correcting the issue.
 
-## 5. Add photos and weather
+## 5. Add photos, videos, and weather
 
-### Photos
+### Photos and videos
 
-Copy photos into the host's selected photo folder. With the default Compose
-configuration this is the repository's `photos/` directory. On the dashboard,
-open **Settings → Photo albums**, tick the folders you want, and select **Save
-photo folders**. Hearth
-indexes images and stores generated thumbnails in its private data directory.
-If the list is empty, verify that the host folder contains image files and that
-the container can read them; the mount inside the container is read-only.
+Copy photos and `.mp4` files into the host's selected media folder. With the
+default Compose configuration this is the repository's `photos/` directory.
+Hearth includes MP4 files in the same folder and album selection as photos;
+video-only folders are selectable too. The catalog is bounded, and each video
+is streamed from the read-only source file with HTTP byte-range support. Hearth
+does not transcode video or install a video conversion tool. Generated photo
+thumbnails are stored in the private data directory.
+
+For the tested PF1007 running Android 6 and WebView 106, begin with H.264
+Baseline video and AAC audio at 480p and 24 fps. That combination visibly played
+on the frame. H.264/AAC at 720p and 30 fps also played, but a short, uncontrolled
+sample showed dropped frames, so it is a less reliable starting point. These
+observations cover one frame and do not guarantee that every MP4, profile, or
+bitrate will play. Server tests verify byte and range delivery separately from
+device decoding. See [the frame test record](FRAME_SETUP.md#video-playback-check)
+for the limits of the playback evidence.
+
+On the dashboard, open **Settings → Photo folders and videos**, tick the
+folders you want, and select **Save photo folders**. If the list is empty,
+verify that the host folder contains supported image or MP4 files and that the
+container can read them; the mount inside the container is read-only.
+
+Videos start muted. Select the speaker control to turn on video audio. The
+frame's audio service reported active PCM output routed to its speaker after
+unmuting; in a later retest, a listener confirmed hearing three beeps. The
+system route report and acoustic observation are separate checks. The
+slideshow waits for a video to finish before advancing; the pause control pauses
+the current video or the image slideshow. If a clip uses an unsupported format,
+Hearth shows an error and offers **Next** to continue. Convert such files to a
+compatible MP4 outside Hearth; the server does not transcode them.
 
 ### Weather and location
 

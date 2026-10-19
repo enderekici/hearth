@@ -10,7 +10,7 @@ const CACHE_KEY = 'hearth.last-known.v1';
 const state = {
   settings: { location: null, calendarIds: [], palette: 'linen', theme: 'auto', dayStart: '07:00', nightStart: '22:00', photoInterval: 30 },
   status: {}, events: [], photos: [], weather: null, spotify: null, calendars: [], selectedLocation: null,
-  photoIndex: 0, photoIndexing: false, photoRetryTimer: null, slideshowTimer: null, refreshTimer: null, spotifyTimer: null, spotifyBackoffUntil: 0, progressTimer: null, toastTimer: null, placeSearchId: 0,
+  photoIndex: 0, photoIndexing: false, photoRetryTimer: null, slideshowTimer: null, slideshowPlaying: true, mediaGeneration: 0, currentMediaKey: null, loadedMediaKey: null, failedMediaKey: null, refreshTimer: null, spotifyTimer: null, spotifyBackoffUntil: 0, progressTimer: null, toastTimer: null, placeSearchId: 0,
   calendarExpanded: false,
 };
 let calendarView = null;
@@ -272,29 +272,145 @@ function renderCalendarDetails() {
   });
 }
 function formatCountdown(ms) { if (ms <= 0) return 'Starting now'; const mins = Math.ceil(ms / 60000); if (mins < 60) return `In ${mins} min`; const hours = Math.floor(mins / 60), rest = mins % 60; if (hours < 24) return `In ${hours}h${rest ? ` ${rest}m` : ''}`; const days = Math.floor(hours / 24); return `In ${days} ${days === 1 ? 'day' : 'days'}`; }
-function renderPhoto() {
-  const photo = state.photos[state.photoIndex]; const image = $('#photo-image');
-  if (!photo) {
-    if (image.hidden) { $('#photo-placeholder').hidden = false; setHidden('#photo-controls', true); }
-    text('#photo-placeholder-title', state.photoIndexing ? 'Preparing your photo library' : state.status.photos?.configured ? 'No photos found' : 'Your moments, at home');
-    text('#photo-placeholder-copy', state.photoIndexing ? 'The Pi is getting your pictures ready' : state.status.photos?.configured ? 'Add pictures to a selected folder on the Pi' : 'Add a photo folder on the Pi to begin');
-    text('#photo-status', state.photoIndexing ? 'Finding your photo folders…' : 'Slideshow is ready when you are'); return;
+function currentPhoto() { return state.photos[state.photoIndex] || null; }
+function photoIsVideo(photo = currentPhoto()) { return photo?.type === 'video'; }
+function updatePhotoPlaybackControl() {
+  const button = $('#photo-toggle');
+  $('use', button).setAttribute('href', state.slideshowPlaying ? '#i-pause' : '#i-play');
+  button.setAttribute('aria-label', state.slideshowPlaying ? 'Pause slideshow' : 'Resume slideshow');
+  button.setAttribute('aria-pressed', String(!state.slideshowPlaying));
+}
+function clearCurrentVideo() {
+  const video = $('#photo-video');
+  video.pause(); video.onended = null; video.onerror = null; video.onloadeddata = null;
+  video.removeAttribute('src'); video.load(); video.hidden = true;
+  setHidden('#video-play', true); setHidden('#video-message', true);
+  setHidden('#photo-sound', true);
+}
+function photoUrl(photo) {
+  if (photo.url) return photo.url;
+  const endpoint = photo.type === 'video' ? 'videos' : 'photos';
+  return `${API}/${endpoint}/${encodeURIComponent(photo.id)}`;
+}
+function mediaStatus(photo) {
+  const kind = photo.type === 'video' ? 'video' : 'photo';
+  return `${state.photoIndex + 1} / ${state.photos.length} ${kind}${photo.type === 'video' ? ` · ${$('#photo-video').muted ? 'Muted' : 'Sound on'}` : ` · changes every ${state.settings.photoInterval || 30}s`}`;
+}
+function showVideoError(title, detail) {
+  state.slideshowPlaying = false; state.failedMediaKey = state.currentMediaKey; clearTimeout(state.slideshowTimer); state.slideshowTimer = null;
+  const video = $('#photo-video'); video.pause(); video.hidden = true;
+  text('#video-message-title', title); text('#video-message-copy', detail);
+  setHidden('#video-message', false); setHidden('#video-play', true); setHidden('#photo-controls', false); setHidden('#photo-sound', true); setHidden('#photo-toggle', true);
+  updatePhotoPlaybackControl(); text('#photo-status', 'Use Next to continue');
+}
+async function tryPlayVideo(userInitiated = false) {
+  const video = $('#photo-video'); const generation = state.mediaGeneration;
+  if (video.hidden || !state.currentMediaKey) return;
+  setHidden('#video-message', true);
+  try { await video.play(); if (generation !== state.mediaGeneration) return; setHidden('#video-play', true); }
+  catch (error) {
+    if (generation !== state.mediaGeneration) return;
+    if (!userInitiated && error?.name === 'NotAllowedError') {
+      text('#video-play', 'Play video'); setHidden('#video-play', false);
+      text('#photo-status', 'Tap Play video to start this muted clip');
+      return;
+    }
+    if (error?.name === 'NotSupportedError' || video.error?.code === 4) {
+      showVideoError('This video format is not supported', 'Use Next to continue to another item.');
+      return;
+    }
+    text('#video-play', 'Play video'); setHidden('#video-play', false);
+    text('#photo-status', 'Tap Play video to start this muted clip');
   }
-  const url = photo.url || `${API}/photos/${encodeURIComponent(photo.id)}`; const candidate = new Image(); candidate.decoding = 'async';
+}
+function renderPhoto() {
+  const photo = currentPhoto(); const image = $('#photo-image'); const video = $('#photo-video');
+  if (!photo) {
+    state.mediaGeneration += 1;
+    clearTimeout(state.slideshowTimer); state.slideshowTimer = null;
+    clearCurrentVideo(); image.hidden = true; state.currentMediaKey = null; state.loadedMediaKey = null; state.failedMediaKey = null;
+    $('#photo-placeholder').hidden = false; setHidden('#photo-controls', true);
+    text('#photo-placeholder-title', state.photoIndexing ? 'Preparing your photo library' : state.status.photos?.configured ? 'No photos or videos found' : 'Your moments, at home');
+    text('#photo-placeholder-copy', state.photoIndexing ? 'The Pi is getting your pictures ready' : state.status.photos?.configured ? 'Add pictures or videos to a selected folder on the Pi' : 'Add a photo folder on the Pi to begin');
+    text('#photo-status', state.photoIndexing ? 'Finding your media…' : 'Slideshow is ready when you are'); return;
+  }
+  const url = photoUrl(photo); const key = `${photo.type === 'video' ? 'video' : 'image'}:${photo.id || url}`;
+  if (state.currentMediaKey === key && state.failedMediaKey === key) return;
+  if (state.currentMediaKey === key && state.loadedMediaKey === key) {
+    if (photo.type === 'video') $('#photo-video').loop = state.photos.length === 1 && state.slideshowPlaying;
+    text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`);
+    text('#photo-status', mediaStatus(photo)); return;
+  }
+  clearTimeout(state.slideshowTimer); state.slideshowTimer = null;
+  state.mediaGeneration += 1; const generation = state.mediaGeneration;
+  state.currentMediaKey = key; state.loadedMediaKey = null; state.failedMediaKey = null;
+  setHidden('#video-play', true); setHidden('#video-message', true);
+  text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`); setHidden('#photo-controls', false); setHidden('#photo-toggle', false);
+  setHidden('#photo-sound', photo.type === 'video');
+  const soundButton = $('#photo-sound'); soundButton.setAttribute('aria-label', 'Turn video sound on'); soundButton.setAttribute('aria-pressed', 'false'); $('use', soundButton).setAttribute('href', '#i-volume');
+  if (photo.type === 'video') {
+    clearCurrentVideo(); image.hidden = true; video.hidden = false; video.muted = true; video.loop = state.photos.length === 1 && state.slideshowPlaying;
+    video.onended = () => { if (generation === state.mediaGeneration && state.slideshowPlaying && state.photos.length > 1) changePhoto(1); };
+    video.onerror = () => { if (generation === state.mediaGeneration) showVideoError('This video cannot be played', 'The file may use a format this frame does not support. Use Next to continue.'); };
+    video.onloadeddata = () => {
+      if (generation !== state.mediaGeneration) return;
+      state.loadedMediaKey = key; $('#photo-placeholder').hidden = true; setHidden('#photo-sound', false);
+      text('#photo-status', mediaStatus(photo));
+      if (state.slideshowPlaying) tryPlayVideo();
+    };
+    video.src = url; video.load();
+    text('#photo-status', 'Loading video…');
+    return;
+  }
+  clearCurrentVideo();
+  const candidate = new Image(); candidate.decoding = 'async';
   candidate.onload = () => {
-    image.src = url; image.hidden = false; $('#photo-placeholder').hidden = true;
-    text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`); setHidden('#photo-controls', false);
-    text('#photo-status', `${state.photos.length} ${state.photos.length === 1 ? 'photo' : 'photos'} · changes every ${state.settings.photoInterval || 30}s`);
+    if (generation !== state.mediaGeneration) return;
+    image.src = url; image.hidden = false; $('#photo-placeholder').hidden = true; state.loadedMediaKey = key;
+    text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`); text('#photo-status', mediaStatus(photo));
+    if (state.slideshowPlaying) startSlideshow();
   };
   candidate.onerror = () => {
+    if (generation !== state.mediaGeneration) return;
     if (image.hidden) { $('#photo-placeholder').hidden = false; text('#photo-placeholder-title', 'Photos are unavailable'); text('#photo-placeholder-copy', 'The Pi will try again when the library is reachable'); }
-    text('#photo-status', image.hidden ? 'Could not load a photo' : 'Showing the last photo · could not load the next one');
+    text('#photo-status', image.hidden ? 'Could not load this photo' : 'Could not load the next photo');
+    state.failedMediaKey = key; state.loadedMediaKey = key;
+    if (state.slideshowPlaying) startSlideshow();
   };
   candidate.src = url;
 }
-function startSlideshow() { clearInterval(state.slideshowTimer); if (state.photos.length > 1) state.slideshowTimer = setInterval(() => changePhoto(1), Math.max(5, Number(state.settings.photoInterval) || 30) * 1000); }
-function changePhoto(direction) { if (!state.photos.length) return; state.photoIndex = (state.photoIndex + direction + state.photos.length) % state.photos.length; renderPhoto(); }
-function photoToggle() { if (state.slideshowTimer) { clearInterval(state.slideshowTimer); state.slideshowTimer = null; $('use', $('#photo-toggle')).setAttribute('href', '#i-play'); $('#photo-toggle').setAttribute('aria-label', 'Resume slideshow'); } else { $('use', $('#photo-toggle')).setAttribute('href', '#i-pause'); $('#photo-toggle').setAttribute('aria-label', 'Pause slideshow'); startSlideshow(); } }
+function startSlideshow() {
+  clearTimeout(state.slideshowTimer); state.slideshowTimer = null;
+  if (!state.slideshowPlaying || state.photos.length < 2 || photoIsVideo()) return;
+  if (state.loadedMediaKey !== state.currentMediaKey) return;
+  state.slideshowTimer = setTimeout(() => { state.slideshowTimer = null; changePhoto(1); }, Math.max(5, Number(state.settings.photoInterval) || 30) * 1000);
+}
+function changePhoto(direction) {
+  if (!state.photos.length) return;
+  state.photoIndex = (state.photoIndex + direction + state.photos.length) % state.photos.length;
+  renderPhoto();
+}
+function photoToggle() {
+  if (photoIsVideo() && state.failedMediaKey === state.currentMediaKey) return;
+  state.slideshowPlaying = !state.slideshowPlaying; updatePhotoPlaybackControl();
+  if (state.slideshowPlaying) {
+    if (photoIsVideo()) { $('#photo-video').loop = state.photos.length === 1; tryPlayVideo(); }
+    else startSlideshow();
+  } else {
+    clearTimeout(state.slideshowTimer); state.slideshowTimer = null;
+    if (photoIsVideo()) { $('#photo-video').loop = false; $('#photo-video').pause(); }
+  }
+}
+function toggleVideoSound() {
+  const video = $('#photo-video'); if (video.hidden) return;
+  video.muted = !video.muted;
+  const button = $('#photo-sound');
+  $('use', button).setAttribute('href', video.muted ? '#i-volume' : '#i-mute');
+  button.setAttribute('aria-label', video.muted ? 'Turn video sound on' : 'Mute video');
+  button.setAttribute('aria-pressed', String(!video.muted));
+  text('#photo-status', mediaStatus(currentPhoto()));
+  if (!video.paused && video.muted === false && video.currentTime === 0) tryPlayVideo(true);
+}
 function renderSpotify() {
   const s = state.spotify || {}; const track = s.track; const connected = Boolean(s.connected);
   text('#spotify-state', connected ? 'Connected' : s.configured ? 'Login needed' : 'Not connected'); $('#spotify-state').className = `status-chip${connected ? ' good' : ''}`;
@@ -376,7 +492,6 @@ async function refreshAll() {
   if (reachable) {
     text('#last-sync', configured ? `${problems ? 'Some saved data may be out of date' : 'Home data refreshed'} · ${formatDate(new Date(), { hour: 'numeric', minute: '2-digit' })}` : 'Finish setup to see your home data');
   }
-  startSlideshow();
 }
 async function loadCalendars() {
   try { const data = await api('/calendars'); state.calendars = data.calendars || []; renderCalendarOptions(); }
@@ -517,6 +632,9 @@ $('#weather-open').addEventListener('click', () => $('#weather-dialog').showModa
 $('#calendar-expand').addEventListener('click', () => { renderCalendarDetails(); $('#calendar-dialog').showModal(); });
 $('#calendar-refresh').addEventListener('click', async event => { const button = event.currentTarget; button.textContent = 'Updating…'; await refreshAll(); button.textContent = 'Refresh'; });
 $('#photo-prev').addEventListener('click', () => changePhoto(-1)); $('#photo-next').addEventListener('click', () => changePhoto(1)); $('#photo-toggle').addEventListener('click', photoToggle);
+$('#photo-sound').addEventListener('click', toggleVideoSound);
+$('#video-play').addEventListener('click', () => tryPlayVideo(true));
+$('#photo-video').addEventListener('click', () => { if ($('#photo-video').paused) tryPlayVideo(true); });
 function togglePhotoFullscreen(force) {
   const stage = $('#photo-stage'); const enable = force ?? !stage.classList.contains('css-fullscreen');
   stage.classList.toggle('css-fullscreen', enable); document.body.classList.toggle('photo-fullscreen-active', enable);
