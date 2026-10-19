@@ -10,7 +10,7 @@ const CACHE_KEY = 'hearth.last-known.v1';
 const state = {
   settings: { location: null, calendarIds: [], palette: 'linen', theme: 'auto', dayStart: '07:00', nightStart: '22:00', photoInterval: 30 },
   status: {}, events: [], photos: [], weather: null, spotify: null, calendars: [], selectedLocation: null,
-  photoIndex: 0, photoIndexing: false, photoRetryTimer: null, slideshowTimer: null, refreshTimer: null, spotifyTimer: null, spotifyBackoffUntil: 0, progressTimer: null, toastTimer: null, photoNameTimer: null, placeSearchId: 0,
+  photoIndex: 0, photoIndexing: false, photoRetryTimer: null, slideshowTimer: null, refreshTimer: null, spotifyTimer: null, spotifyBackoffUntil: 0, progressTimer: null, toastTimer: null, placeSearchId: 0,
   calendarExpanded: false,
 };
 let calendarView = null;
@@ -275,7 +275,7 @@ function formatCountdown(ms) { if (ms <= 0) return 'Starting now'; const mins = 
 function renderPhoto() {
   const photo = state.photos[state.photoIndex]; const image = $('#photo-image');
   if (!photo) {
-    if (image.hidden) { $('#photo-placeholder').hidden = false; setHidden('#photo-caption', true); setHidden('#photo-controls', true); }
+    if (image.hidden) { $('#photo-placeholder').hidden = false; setHidden('#photo-controls', true); }
     text('#photo-placeholder-title', state.photoIndexing ? 'Preparing your photo library' : state.status.photos?.configured ? 'No photos found' : 'Your moments, at home');
     text('#photo-placeholder-copy', state.photoIndexing ? 'The Pi is getting your pictures ready' : state.status.photos?.configured ? 'Add pictures to a selected folder on the Pi' : 'Add a photo folder on the Pi to begin');
     text('#photo-status', state.photoIndexing ? 'Finding your photo folders…' : 'Slideshow is ready when you are'); return;
@@ -283,7 +283,7 @@ function renderPhoto() {
   const url = photo.url || `${API}/photos/${encodeURIComponent(photo.id)}`; const candidate = new Image(); candidate.decoding = 'async';
   candidate.onload = () => {
     image.src = url; image.hidden = false; $('#photo-placeholder').hidden = true;
-    text('#photo-name', photo.name || 'A moment from home'); text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`); setHidden('#photo-caption', false); setHidden('#photo-controls', false);
+    text('#photo-counter', `${state.photoIndex + 1} / ${state.photos.length}`); setHidden('#photo-controls', false);
     text('#photo-status', `${state.photos.length} ${state.photos.length === 1 ? 'photo' : 'photos'} · changes every ${state.settings.photoInterval || 30}s`);
   };
   candidate.onerror = () => {
@@ -525,11 +525,6 @@ function togglePhotoFullscreen(force) {
 }
 $('#photo-fullscreen').addEventListener('click', () => togglePhotoFullscreen());
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('#photo-stage').classList.contains('css-fullscreen')) togglePhotoFullscreen(false); });
-$('#photo-stage').addEventListener('click', event => {
-  if (event.target.closest('button') || $('#photo-image').hidden) return;
-  const stage = $('#photo-stage'); stage.classList.add('show-name'); clearTimeout(state.photoNameTimer);
-  state.photoNameTimer = setTimeout(() => stage.classList.remove('show-name'), 3500);
-});
 $('#music-prev').addEventListener('click', () => spotifyAction('previous')); $('#music-next').addEventListener('click', () => spotifyAction('next'));
 $('#music-toggle').addEventListener('click', () => spotifyAction(state.spotify?.playing ? 'pause' : 'play'));
 $('#spotify-device').addEventListener('change', event => event.target.value && spotifyAction('transfer', { deviceId: event.target.value }));
