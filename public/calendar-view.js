@@ -127,6 +127,7 @@ export function mountCalendarView(container, {
   let allEvents = sortEvents(events);
   let view = 'week';
   let anchor = dateKeyInZone(new Date(), zone);
+  let lastToday = anchor;
   let requestSequence = 0;
   let destroyed = false;
   let selectedDay = '';
@@ -214,7 +215,11 @@ export function mountCalendarView(container, {
     for (const { key, matches } of displayedDays) {
       const section = document.createElement('section'); section.className = 'cv-day'; section.classList.toggle('is-today', key === todayKey);
       const title = document.createElement('button'); title.type = 'button'; title.className = 'cv-day-heading';
-      title.textContent = `${formatDay(key, zone, { weekday: 'long', day: 'numeric', month: 'short' })}${key === todayKey ? ' · Today' : ''}`;
+      title.setAttribute('aria-label', formatDay(key, zone, { weekday: 'long', day: 'numeric', month: 'long' }));
+      const weekday = document.createElement('span'); weekday.className = 'cv-weekday'; weekday.textContent = formatDay(key, zone, { weekday: 'short' });
+      const date = document.createElement('span'); date.className = 'cv-date'; date.textContent = formatDay(key, zone, { day: 'numeric', month: 'short' });
+      title.append(weekday, document.createTextNode(' '), date);
+      if (key === todayKey) { const marker = document.createElement('span'); marker.className = 'cv-today-marker'; marker.textContent = 'Today'; title.append(marker); }
       title.addEventListener('click', () => { selectedDay = key; renderDetail(); detail.scrollIntoView({ block: 'nearest' }); }); section.append(title);
       if (!matches.length) { const empty = document.createElement('p'); empty.className = 'cv-no-events'; empty.textContent = rangeCovers(loadedRange, key) ? 'No events' : rangeCovers(failedRange, key) ? 'Events unavailable' : requesting ? 'Loading events…' : 'Events not loaded'; section.append(empty); }
       else { const list = document.createElement('div'); list.className = 'cv-event-list'; matches.forEach(event => list.append(eventLabel(event, zone))); section.append(list); }
@@ -272,13 +277,22 @@ export function mountCalendarView(container, {
     if (!button || !tabs.contains(button)) return;
     view = button.dataset.view;
     selectedDay = '';
-    if (view === 'month') anchor = `${anchor.slice(0, 7)}-01`;
     render(); fetchVisible();
   });
 
   render();
   if (configured) fetchVisible();
   return {
+    refresh() {
+      const now = dateKeyInZone(new Date(), zone);
+      if (now !== lastToday) {
+        if (view === 'week' && civilWeekStart(anchor) === civilWeekStart(lastToday)
+            || view === 'agenda' && anchor === lastToday
+            || view === 'month' && anchor.slice(0, 7) === lastToday.slice(0, 7)) anchor = now;
+        lastToday = now;
+      }
+      return fetchVisible();
+    },
     updateEvents(nextEvents) { allEvents = sortEvents(nextEvents || []); render(); },
     destroy() { destroyed = true; requestSequence++; container.replaceChildren(); container.classList.remove('calendar-view'); },
   };

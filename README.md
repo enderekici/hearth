@@ -1,6 +1,8 @@
 # Hearth
 
-Hearth is a Node.js 24 dashboard for a home photo frame. It combines a photo slideshow, local MP4 videos, calendar, weather, school-notification, and Spotify Connect views. The dashboard is a web app served on the local network; it is not a device firmware image.
+Hearth is a Node.js 24 calendar for a home photo frame. The default screen is a full-page weekly calendar with large event text, 24-hour times, and day/night themes. Month and Agenda views are also available. Calendar settings let you select which iCloud calendars to display.
+
+The full dashboard, including photos, local MP4 videos, weather, school notifications, and Spotify Connect, remains at `/dashboard.html`. Open it from Calendar settings. The calendar home screen only requests calendar data and settings; it does not run the slideshow or poll Spotify and weather. Hearth is a web app served on the local network, not a device firmware image.
 
 This repository starts from a fresh source tree and does not import the previous dashboard's Git history. [History](docs/HISTORY.md) is a narrative of one tested frame, not a universal hardware-repair guide. For reproducible setup, start with [server and account setup](docs/SETUP.md), then follow [PF1007 frame setup and recovery](docs/FRAME_SETUP.md). Architecture and privacy boundaries are in [Process](docs/PROCESS.md).
 
