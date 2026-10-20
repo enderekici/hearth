@@ -1,7 +1,7 @@
 # Set up Hearth
 
 The home address now opens the calendar-only screen. Tap the settings gear to
-choose calendars or day/night appearance. For the account-connection steps below,
+choose calendars, switch between Week/Month/Agenda, or change day/night appearance. For the account-connection steps below,
 tap **Connections and other settings** in that panel; this opens the full setup
 screen at `/dashboard.html?settings=1`. The full dashboard is also available at
 `/dashboard.html`. Tap its Hearth logo to return to the calendar.
