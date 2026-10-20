@@ -1,6 +1,6 @@
 # Hearth
 
-Hearth is a Node.js 24 calendar for a home photo frame. The default screen is a full-page weekly calendar with large event text, 24-hour times, and day/night themes. Night mode uses pure black and white, with an inverted highlight for today. The week fits in two spacious rows. Event titles are 34px and times are 28px. Calendar settings contain the Week/Month/Agenda switcher and let you select which iCloud calendars to display.
+Hearth is a Node.js 24 calendar for a home photo frame. The default screen is a full-page weekly calendar with large event text, 24-hour times, and day/night themes. Night mode uses pure black and white, with an inverted highlight for today. Each day has a full-width row; event times and titles read left to right and wrap without truncation. Event titles are 34px and times are 28px. Calendar settings contain the Week/Month/Agenda switcher and let you select which iCloud calendars to display.
 
 The full dashboard, including photos, local MP4 videos, weather, school notifications, and Spotify Connect, remains at `/dashboard.html`. Open it from Calendar settings. The calendar home screen only requests calendar data and settings; it does not run the slideshow or poll Spotify and weather. Hearth is a web app served on the local network, not a device firmware image.
 
