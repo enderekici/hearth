@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2e9">
+  <meta name="color-scheme" content="light dark">
+  <title>Hearth</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/calendar-view.css">
+  <link rel="stylesheet" href="/themes.css">
+  <link rel="stylesheet" href="/spotify-view.css">
+  <link rel="stylesheet" href="/school-view.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7.3 18.2h10a4 4 0 0 0 .1-8 5.6 5.6 0 0 0-10.8-1.1 4.6 4.6 0 0 0 .7 9.1Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7.3 14.8h10a4 4 0 0 0 .1-8 5.6 5.6 0 0 0-10.8-1.1 4.6 4.6 0 0 0 .7 9.1Z"/><path d="m8 18-1 2m6-2-1 2m6-2-1 2"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.3 15.2A8.6 8.6 0 0 1 8.8 3.7a8.7 8.7 0 1 0 11.5 11.5Z"/></symbol>
+    <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8h12a3 3 0 1 0-3-3M2 12h17a3 3 0 1 1-3 3M4 16h7a2 2 0 1 1-2 2"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11Z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.8 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.8-1l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.8-1L13.1 7h2.8l.3 1.8a8 8 0 0 1 1.8 1l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1-.3 2.4Z" transform="translate(-1 -2)"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5h3v14H8zm5 0h3v14h-3z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 10 7-10 7V5Zm11 0h3v14h-3z"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="m19 5-10 7 10 7V5ZM8 5H5v14h3z"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7m3-10a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6m0-6-5 6"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Hearth home"><span class="brand-mark">h</span><span>hearth</span></a>
+      <div class="topbar-right">
+        <span class="connection" id="connection"><i></i><span>Connecting</span></span>
+        <button class="school-open-button" id="school-open" type="button">School</button>
+        <button class="music-browse" id="spotify-browse" type="button">Music</button>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Switch to night theme">Day</button>
+        <button class="icon-button settings-trigger" id="settings-open" aria-label="Open settings"><svg><use href="#i-settings"/></svg></button>
+      </div>
+    </header>
+    <main class="dashboard">
+      <section class="welcome-row">
+        <div class="time-block">
+          <div class="date-line" id="date-line">—</div>
+          <div class="clock-line" id="clock-line">--:--</div>
+          <div class="greeting-line" id="greeting-line">A little space to breathe.</div>
+        </div>
+        <button class="weather-card" id="weather-open" aria-label="Open weather forecast">
+          <span class="weather-main"><svg class="weather-icon" id="weather-icon"><use href="#i-cloud"/></svg><span class="weather-temp" id="weather-temp">—°</span></span>
+          <span class="weather-copy"><strong id="weather-summary">Weather</strong><span id="weather-place">Set a location in settings</span></span>
+          <span class="weather-highlow" id="weather-highlow">— / —</span>
+          <svg class="weather-chevron"><use href="#i-chevron"/></svg>
+        </button>
+      </section>
+
+      <section class="main-grid">
+        <section class="agenda-panel panel">
+          <div class="section-heading"><div><p class="eyebrow">THE DAYS AHEAD</p><h1>Coming up</h1></div><button class="text-button" id="calendar-refresh">Refresh</button></div>
+          <div class="next-up" id="next-up"><span class="next-label">NEXT UP</span><span class="next-title">Your calendar will appear here</span><span class="next-time">Connect iCloud to get started</span></div>
+          <div class="agenda-list" id="agenda-list"><div class="empty-state"><span class="empty-orbit">✳</span><p>Your days, gently gathered.</p><button class="text-button" data-open-settings>Connect a calendar <svg><use href="#i-chevron"/></svg></button></div></div>
+          <div class="panel-foot"><span id="calendar-updated">Calendar not connected</span><button class="quiet-button" id="calendar-expand">See all <svg><use href="#i-chevron"/></svg></button></div>
+        </section>
+
+        <section class="photo-panel" id="photo-panel" aria-label="Photo and video slideshow">
+          <div class="photo-stage" id="photo-stage">
+            <div class="photo-placeholder" id="photo-placeholder"><div class="photo-placeholder-inner"><svg><use href="#i-photo"/></svg><span id="photo-placeholder-title">Your moments, at home</span><small id="photo-placeholder-copy">Add a photo folder on the Pi to begin</small><button class="text-button" data-open-settings>Set up photos <svg><use href="#i-chevron"/></svg></button></div></div>
+            <img id="photo-image" alt="" hidden>
+            <video id="photo-video" muted playsinline preload="metadata" hidden aria-label="Slideshow video"></video>
+            <button class="video-play" id="video-play" type="button" hidden>Play video</button>
+            <div class="video-message" id="video-message" role="status" hidden><strong id="video-message-title">Video unavailable</strong><span id="video-message-copy"></span></div>
+            <div class="photo-wash"></div>
+          </div>
+          <div class="photo-bottom">
+            <div class="photo-controls" id="photo-controls" hidden aria-label="Photo controls"><button class="photo-control" id="photo-prev" aria-label="Previous photo"><svg><use href="#i-prev"/></svg></button><button class="photo-control" id="photo-toggle" aria-label="Pause slideshow"><svg><use href="#i-pause"/></svg></button><button class="photo-control" id="photo-next" aria-label="Next photo"><svg><use href="#i-next"/></svg></button><button class="photo-control" id="photo-fullscreen" aria-label="Fullscreen"><svg><use href="#i-expand"/></svg></button><button class="photo-control" id="photo-sound" aria-label="Turn video sound on" aria-pressed="false" hidden><svg><use href="#i-volume"/></svg></button><span class="photo-counter" id="photo-counter" aria-live="polite"></span></div>
+            <span id="photo-status">Slideshow is ready when you are</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="music-bar panel" id="music-bar">
+        <div class="music-intro"><span class="spotify-dot">●</span><span>IN THE ROOM</span></div>
+        <div class="track-art" id="track-art"></div>
+        <div class="track-info"><strong id="track-title">A soundtrack for home</strong><span id="track-artist">Connect your Spotify account in Settings</span></div>
+        <div class="music-progress"><div class="progress-label"><span id="track-elapsed">0:00</span><span id="track-duration">0:00</span></div><div class="progress-track"><i id="progress-fill"></i></div></div>
+        <div class="music-controls"><button id="music-prev" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button><button class="play-button" id="music-toggle" aria-label="Play"><svg><use href="#i-play"/></svg></button><button id="music-next" aria-label="Next track"><svg><use href="#i-next"/></svg></button></div>
+        <div class="device-control"><select id="spotify-device" aria-label="Spotify device"><option value="">No active speaker</option></select><label class="volume-control" aria-label="Volume"><svg><use href="#i-wind"/></svg><input id="spotify-volume" type="range" min="0" max="100" value="35"><span id="volume-value">35</span></label></div>
+        <div class="music-error" id="music-error" hidden></div>
+      </section>
+      <footer class="footer-line"><span id="last-sync">Waiting for your home</span></footer>
+    </main>
+  </div>
+
+  <dialog class="drawer" id="settings-dialog" aria-labelledby="settings-title"><div class="drawer-head"><div><p class="eyebrow">MAKE IT YOURS</p><h2 id="settings-title">Home settings</h2></div><button class="icon-button dialog-close" aria-label="Close settings"><svg><use href="#i-close"/></svg></button></div>
+    <div class="drawer-content">
+      <section class="settings-section"><div class="settings-heading"><div><h3>Look and feel</h3><p>Choose a palette, then set how it follows the day.</p></div></div><div id="palette-picker"></div><div class="field-row"><label for="theme-setting">Day and night</label><select id="theme-setting"><option value="auto">Follow the day</option><option value="day">Always daylight</option><option value="night">Always night</option></select></div><div class="field-pair"><label>Day begins<input id="day-start" type="time" value="07:00"></label><label>Night begins<input id="night-start" type="time" value="22:00"></label></div><div class="field-row"><label for="photo-interval">Photos change every</label><select id="photo-interval"><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></div><div class="field-row brightness-row"><label for="brightness-range">Screen brightness</label><div class="range-with-value"><input id="brightness-range" type="range" min="15" max="100" value="100"><span id="brightness-value">100%</span></div></div></section>
+      <section class="settings-section"><div class="settings-heading"><div><h3>Photo folders and videos</h3><p>Choose which Pi folders appear in the slideshow. MP4 videos in those folders play in place. None selected shows everything.</p></div></div><div class="album-options" id="photo-albums"><span class="form-note">Loading photo folders…</span></div><button class="quiet-button" id="save-photo-albums">Save photo folders</button></section>
+      <section class="settings-section"><div class="settings-heading"><div><h3>Your calendar</h3><p>Use an Apple app-specific password. It is stored privately on your Pi.</p></div><span class="status-chip" id="icloud-state">Not connected</span></div><form id="icloud-form" class="stack-form"><label>Apple ID email<input id="icloud-email" type="email" autocomplete="username" placeholder="you@example.com"></label><label>App-specific password<input id="icloud-password" type="password" autocomplete="new-password" placeholder="xxxx-xxxx-xxxx-xxxx"></label><button class="primary-button" type="submit" id="icloud-connect">Connect Apple calendar</button><p class="form-note" id="icloud-note">Create an app-specific password at appleid.apple.com. Your password is never shown after saving.</p></form><div class="calendar-select" id="calendar-select" hidden><div class="calendar-select-head"><strong>Choose calendars</strong><button class="quiet-button" id="save-calendars">Save selection</button></div><div id="calendar-options"></div></div></section>
+      <section class="settings-section"><div class="settings-heading"><div><h3>Weather</h3><p>Choose the place that feels like home.</p></div><span class="status-chip" id="weather-state">Not set</span></div><form id="location-form" class="stack-form"><label>City or place<div class="search-row"><input id="location-search" type="search" placeholder="Search a town or postcode" autocomplete="off"><button class="secondary-button" type="submit">Find</button></div></label><div id="location-results" class="location-results" hidden></div><div class="chosen-location" id="chosen-location">No location selected</div><button class="primary-button" id="save-location" type="button">Save location</button></form></section>
+      <section class="settings-section"><div class="settings-heading"><div><h3>Spotify Connect</h3><p>Choose the speaker that makes this room yours.</p></div><span class="status-chip" id="spotify-state">Not connected</span></div><form id="spotify-form" class="stack-form"><label>Developer Client ID<input id="spotify-client-id" autocomplete="off" placeholder="Paste the Client ID from your Spotify app"></label><button class="primary-button" type="submit">Save Client ID</button></form><div class="form-note spotify-steps"><p>1. Create an app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and copy its Client ID.</p><p>2. Add this redirect address in the app settings: <code>http://127.0.0.1:8787/api/spotify/callback</code></p><p>3. On your computer, open a terminal and run <code>ssh -N -L 8787:&lt;PI_HOST&gt;:8787 &lt;PI_USER&gt;@&lt;PI_HOST&gt;</code>. Replace <code>&lt;PI_HOST&gt;</code> and <code>&lt;PI_USER&gt;</code> with your Pi's host and username. Then open <code>http://127.0.0.1:8787/?settings=1</code> on that computer, save the Client ID, and connect your account.</p><p>Spotify opens in the computer's browser through the tunnel. Authorization uses PKCE, so a Client Secret is not needed.</p></div><p class="form-note" id="spotify-frame-note" hidden>Open Hearth on your computer through the SSH tunnel to finish Spotify authorization. This screen will not open Spotify login.</p><div class="spotify-setup-actions"><a class="secondary-button" id="spotify-login" href="/api/spotify/login">Connect Spotify account</a><button class="quiet-button" id="refresh-devices">Find speakers</button></div></section>
+      <section class="settings-section android-section"><div class="settings-heading"><div><h3>Screen</h3><p>Keep Hearth close at hand.</p></div></div><div class="android-actions"><button class="secondary-button" id="open-android-settings">Android settings</button><button class="secondary-button" id="open-launcher">Open device launcher</button><button class="secondary-button" id="reload-dashboard">Reload dashboard</button></div></section>
+      <p class="settings-feedback" id="settings-feedback" role="status"></p>
+    </div>
+  </dialog>
+
+  <dialog class="detail-dialog" id="weather-dialog"><div class="detail-head"><div><p class="eyebrow">OUTSIDE YOUR WINDOW</p><h2 id="weather-detail-place">Weather</h2></div><button class="icon-button dialog-close" aria-label="Close weather"><svg><use href="#i-close"/></svg></button></div><div id="weather-detail-content" class="weather-detail-content"><div class="detail-empty">Set a location in Home settings to see the forecast.</div></div><button class="quiet-button detail-settings" data-open-settings>Weather settings <svg><use href="#i-chevron"/></svg></button></dialog>
+  <dialog class="detail-dialog calendar-dialog" id="calendar-dialog"><div class="detail-head"><div><p class="eyebrow">YOUR CALENDAR</p><h2>Calendar</h2></div><button class="icon-button dialog-close" aria-label="Close calendar"><svg><use href="#i-close"/></svg></button></div><div id="calendar-detail-content" class="calendar-detail-content"></div></dialog>
+  <dialog class="spotify-dialog" id="spotify-dialog" aria-label="Spotify music library"><div id="spotify-view"></div></dialog>
+  <dialog class="school-dialog" id="school-dialog" aria-label="School messages and Calendar sync"><button class="icon-button school-dialog-close" id="school-dialog-close" type="button" aria-label="Close school view"><svg><use href="#i-close"/></svg></button><div id="school-view"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
