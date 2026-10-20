@@ -46,7 +46,7 @@ function tick() {
   document.body.dataset.palette = settings.palette || 'ink';
   document.body.classList.toggle('night', dark);
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-  $('meta[name="theme-color"]').content = dark ? '#101214' : '#f5f2e9';
+  $('meta[name="theme-color"]').content = dark ? '#000000' : '#f5f2e9';
 }
 function mount() {
   const key = `${zone}:${configured}`;
