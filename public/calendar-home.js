@@ -2,7 +2,7 @@ import { mountCalendarView } from './calendar-view.js';
 
 const $ = selector => document.querySelector(selector);
 const CACHE_KEY = 'hearth.calendar-home.v1';
-let settings = { palette: 'linen', theme: 'auto', dayStart: '07:00', nightStart: '22:00' };
+let settings = { palette: 'ink', theme: 'dark', dayStart: '07:00', nightStart: '22:00' };
 let configured = false;
 let calendar = null;
 let zone = 'Europe/London';
@@ -43,10 +43,10 @@ function tick() {
   const toMinutes = (raw, fallback) => /^\d\d:\d\d$/.test(raw || '') ? Number(raw.slice(0, 2)) * 60 + Number(raw.slice(3)) : fallback;
   const day = toMinutes(settings.dayStart, 420), night = toMinutes(settings.nightStart, 1320);
   const dark = settings.theme === 'night' || settings.theme === 'dark' || settings.theme === 'auto' && (day < night ? minutes < day || minutes >= night : minutes < day && minutes >= night);
-  document.body.dataset.palette = settings.palette || 'linen';
+  document.body.dataset.palette = settings.palette || 'ink';
   document.body.classList.toggle('night', dark);
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-  $('meta[name="theme-color"]').content = dark ? '#20221e' : '#f5f2e9';
+  $('meta[name="theme-color"]').content = dark ? '#101214' : '#f5f2e9';
 }
 function mount() {
   const key = `${zone}:${configured}`;
@@ -60,6 +60,7 @@ function mount() {
       return data;
     },
   });
+  $('#view-options').replaceChildren($('#calendar .cv-tabs'));
   lastMounted = key;
   return true;
 }
